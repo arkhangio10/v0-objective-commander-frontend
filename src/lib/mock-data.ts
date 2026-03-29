@@ -1,0 +1,446 @@
+import type {
+  User,
+  Objective,
+  Milestone,
+  Task,
+  Expense,
+  AnalyticsSnapshot,
+  RecoveryPlan,
+  DashboardData,
+  IntegrationsStatus,
+  UserSettings,
+} from '@/src/types'
+
+// ─── User ─────────────────────────────────────────────────────────────────────
+
+export const mockUser: User = {
+  id: 'usr_001',
+  email: 'alex.morgan@example.com',
+  displayName: 'Alex Morgan',
+  avatarUrl: undefined,
+  timezone: 'America/New_York',
+  createdAt: '2025-01-15T00:00:00Z',
+}
+
+// ─── Objectives ───────────────────────────────────────────────────────────────
+
+export const mockObjectives: Objective[] = [
+  {
+    id: 'obj_001',
+    title: 'Launch SaaS MVP',
+    description:
+      'Build and launch the first version of the project management SaaS targeting freelancers. Full product from landing page to billing.',
+    category: 'business',
+    startDate: '2025-02-01',
+    endDate: '2025-05-01',
+    targetOutcome: 'Paying customers live with a working product',
+    estimatedEffort: 480,
+    budgetLimit: 3000,
+    moneySpent: 1840,
+    progressPercent: 52,
+    riskStatus: 'at_risk',
+    feasibilityScore: 71,
+    consistencyScore: 64,
+    scheduleVariance: -8,
+    checkpointHours: [10, 14, 18, 22],
+    emailReminders: true,
+    isActive: true,
+    coachMessage: 'You are 8 days behind. Recover now — the deadline does not move.',
+    createdAt: '2025-02-01T00:00:00Z',
+    updatedAt: '2025-03-20T12:00:00Z',
+  },
+  {
+    id: 'obj_002',
+    title: 'Run Half Marathon',
+    description: 'Train consistently and complete the city half marathon in under 2 hours.',
+    category: 'fitness',
+    startDate: '2025-01-15',
+    endDate: '2025-04-20',
+    targetOutcome: 'Complete 21km in under 2:00:00',
+    estimatedEffort: 120,
+    budgetLimit: 500,
+    moneySpent: 210,
+    progressPercent: 78,
+    riskStatus: 'on_track',
+    feasibilityScore: 88,
+    consistencyScore: 85,
+    scheduleVariance: 3,
+    checkpointHours: [10, 18],
+    emailReminders: true,
+    isActive: true,
+    coachMessage: "Training is consistent. Maintain pace — you're on track for sub-2 hours.",
+    createdAt: '2025-01-15T00:00:00Z',
+    updatedAt: '2025-03-20T08:00:00Z',
+  },
+  {
+    id: 'obj_003',
+    title: 'Complete AWS Solutions Architect Certification',
+    description:
+      'Study, practice, and pass the AWS Solutions Architect Associate exam.',
+    category: 'education',
+    startDate: '2025-02-15',
+    endDate: '2025-04-15',
+    targetOutcome: 'Pass SAA-C03 exam with score above 800',
+    estimatedEffort: 200,
+    budgetLimit: 800,
+    moneySpent: 620,
+    progressPercent: 28,
+    riskStatus: 'critical',
+    feasibilityScore: 42,
+    consistencyScore: 35,
+    scheduleVariance: -18,
+    checkpointHours: [10, 14, 22],
+    emailReminders: true,
+    isActive: true,
+    coachMessage: 'Critical. 18 days behind — recovery requires 4 hours of focused study daily.',
+    createdAt: '2025-02-15T00:00:00Z',
+    updatedAt: '2025-03-19T20:00:00Z',
+  },
+  {
+    id: 'obj_004',
+    title: 'Build Emergency Fund',
+    description: 'Save $10,000 as a 6-month emergency fund through consistent monthly deposits.',
+    category: 'finance',
+    startDate: '2025-01-01',
+    endDate: '2025-12-31',
+    targetOutcome: '$10,000 saved in a high-yield savings account',
+    estimatedEffort: 0,
+    budgetLimit: 0,
+    moneySpent: 0,
+    progressPercent: 22,
+    riskStatus: 'on_track',
+    feasibilityScore: 92,
+    consistencyScore: 90,
+    scheduleVariance: 1,
+    checkpointHours: [10, 22],
+    emailReminders: false,
+    isActive: true,
+    coachMessage: 'On track. Automate the next deposit to maintain momentum.',
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-03-01T00:00:00Z',
+  },
+]
+
+// ─── Milestones ───────────────────────────────────────────────────────────────
+
+export const mockMilestones: Milestone[] = [
+  {
+    id: 'ms_001',
+    objectiveId: 'obj_001',
+    title: 'Core Backend API Complete',
+    dueDate: '2025-02-28',
+    status: 'completed',
+    completionPercent: 100,
+    linkedTasksCount: 12,
+    description: 'All API endpoints built, tested, and documented.',
+  },
+  {
+    id: 'ms_002',
+    objectiveId: 'obj_001',
+    title: 'Frontend MVP Live on Staging',
+    dueDate: '2025-03-15',
+    status: 'overdue',
+    completionPercent: 65,
+    linkedTasksCount: 8,
+    description: 'All main screens functional and linked to backend.',
+  },
+  {
+    id: 'ms_003',
+    objectiveId: 'obj_001',
+    title: 'Billing & Auth Integration',
+    dueDate: '2025-03-30',
+    status: 'in_progress',
+    completionPercent: 30,
+    linkedTasksCount: 6,
+    description: 'Stripe integration and Firebase Auth wired up.',
+  },
+  {
+    id: 'ms_004',
+    objectiveId: 'obj_001',
+    title: 'Public Launch',
+    dueDate: '2025-05-01',
+    status: 'not_started',
+    completionPercent: 0,
+    linkedTasksCount: 5,
+    description: 'Product live with landing page, onboarding, and first customers.',
+  },
+  {
+    id: 'ms_005',
+    objectiveId: 'obj_002',
+    title: 'Build Base Mileage (20km/week)',
+    dueDate: '2025-02-28',
+    status: 'completed',
+    completionPercent: 100,
+    linkedTasksCount: 10,
+  },
+  {
+    id: 'ms_006',
+    objectiveId: 'obj_002',
+    title: 'Long Run 15km',
+    dueDate: '2025-03-25',
+    status: 'in_progress',
+    completionPercent: 80,
+    linkedTasksCount: 4,
+  },
+  {
+    id: 'ms_007',
+    objectiveId: 'obj_003',
+    title: 'Complete AWS Training Courses',
+    dueDate: '2025-03-10',
+    status: 'overdue',
+    completionPercent: 40,
+    linkedTasksCount: 15,
+  },
+  {
+    id: 'ms_008',
+    objectiveId: 'obj_003',
+    title: 'Practice Exams (score 85%+)',
+    dueDate: '2025-04-01',
+    status: 'not_started',
+    completionPercent: 0,
+    linkedTasksCount: 6,
+  },
+]
+
+// ─── Tasks ────────────────────────────────────────────────────────────────────
+
+export const mockTasks: Task[] = [
+  {
+    id: 'tsk_001',
+    objectiveId: 'obj_001',
+    milestoneId: 'ms_003',
+    title: 'Integrate Stripe Checkout flow',
+    dueDate: new Date().toISOString().split('T')[0],
+    source: 'google_tasks',
+    status: 'in_progress',
+    isOverdue: false,
+    googleTaskId: 'gt_abc123',
+  },
+  {
+    id: 'tsk_002',
+    objectiveId: 'obj_001',
+    milestoneId: 'ms_002',
+    title: 'Fix dashboard data fetching bug',
+    dueDate: new Date().toISOString().split('T')[0],
+    source: 'app',
+    status: 'pending',
+    isOverdue: false,
+  },
+  {
+    id: 'tsk_003',
+    objectiveId: 'obj_002',
+    milestoneId: 'ms_006',
+    title: 'Long run: 12km steady pace',
+    dueDate: new Date().toISOString().split('T')[0],
+    source: 'google_tasks',
+    status: 'pending',
+    isOverdue: false,
+    googleTaskId: 'gt_def456',
+  },
+  {
+    id: 'tsk_004',
+    objectiveId: 'obj_003',
+    milestoneId: 'ms_007',
+    title: 'Complete IAM & Security module',
+    dueDate: '2025-03-18',
+    source: 'app',
+    status: 'overdue',
+    isOverdue: true,
+  },
+  {
+    id: 'tsk_005',
+    objectiveId: 'obj_001',
+    milestoneId: 'ms_003',
+    title: 'Set up Firebase Auth middleware',
+    dueDate: '2025-03-22',
+    source: 'app',
+    status: 'completed',
+    isOverdue: false,
+  },
+  {
+    id: 'tsk_006',
+    objectiveId: 'obj_003',
+    milestoneId: 'ms_007',
+    title: 'Watch EC2 & Networking lectures',
+    dueDate: '2025-03-25',
+    source: 'google_tasks',
+    status: 'pending',
+    isOverdue: false,
+    googleTaskId: 'gt_ghi789',
+  },
+  {
+    id: 'tsk_007',
+    objectiveId: 'obj_002',
+    title: 'Foam roll & stretching routine',
+    dueDate: '2025-03-21',
+    source: 'app',
+    status: 'completed',
+    isOverdue: false,
+  },
+]
+
+// ─── Expenses ─────────────────────────────────────────────────────────────────
+
+export const mockExpenses: Expense[] = [
+  {
+    id: 'exp_001',
+    objectiveId: 'obj_001',
+    amount: 299,
+    category: 'subscriptions',
+    date: '2025-03-01',
+    note: 'AWS hosting + Vercel Pro',
+    createdAt: '2025-03-01T10:00:00Z',
+  },
+  {
+    id: 'exp_002',
+    objectiveId: 'obj_001',
+    amount: 49,
+    category: 'tools',
+    date: '2025-03-05',
+    note: 'Figma subscription',
+    createdAt: '2025-03-05T10:00:00Z',
+  },
+  {
+    id: 'exp_003',
+    objectiveId: 'obj_001',
+    amount: 1200,
+    category: 'tools',
+    date: '2025-02-10',
+    note: 'MacBook Pro upgrade',
+    createdAt: '2025-02-10T10:00:00Z',
+  },
+  {
+    id: 'exp_004',
+    objectiveId: 'obj_001',
+    amount: 292,
+    category: 'misc',
+    date: '2025-03-10',
+    note: 'Freelance design help',
+    createdAt: '2025-03-10T10:00:00Z',
+  },
+  {
+    id: 'exp_005',
+    objectiveId: 'obj_002',
+    amount: 120,
+    category: 'health',
+    date: '2025-01-20',
+    note: 'New running shoes',
+    createdAt: '2025-01-20T10:00:00Z',
+  },
+  {
+    id: 'exp_006',
+    objectiveId: 'obj_002',
+    amount: 90,
+    category: 'health',
+    date: '2025-02-15',
+    note: 'Monthly gym membership x2',
+    createdAt: '2025-02-15T10:00:00Z',
+  },
+  {
+    id: 'exp_007',
+    objectiveId: 'obj_003',
+    amount: 450,
+    category: 'study',
+    date: '2025-02-16',
+    note: 'A Cloud Guru annual plan',
+    createdAt: '2025-02-16T10:00:00Z',
+  },
+  {
+    id: 'exp_008',
+    objectiveId: 'obj_003',
+    amount: 170,
+    category: 'study',
+    date: '2025-03-01',
+    note: 'AWS exam voucher',
+    createdAt: '2025-03-01T10:00:00Z',
+  },
+]
+
+// ─── Analytics ────────────────────────────────────────────────────────────────
+
+export const mockAnalytics: AnalyticsSnapshot = {
+  objectiveId: 'obj_001',
+  date: new Date().toISOString(),
+  expectedProgress: 61,
+  actualProgress: 52,
+  scheduleVariance: -8,
+  consistencyScore: 64,
+  feasibilityScore: 71,
+  moneySpent: 1840,
+  projectedTotalSpend: 2800,
+  paceRequired: 4.2,
+  riskTrend: ['on_track', 'on_track', 'at_risk', 'at_risk', 'at_risk'],
+}
+
+// ─── Recovery Plan ────────────────────────────────────────────────────────────
+
+export const mockRecoveryPlan: RecoveryPlan = {
+  objectiveId: 'obj_001',
+  generatedAt: new Date().toISOString(),
+  missedItems: [
+    'Frontend staging deployment (3 days late)',
+    '2 auth integration tasks not started',
+    'Landing page copywriting skipped',
+  ],
+  changedItems: [
+    'Daily task quota increased from 3 to 5 tasks',
+    'Landing page deferred to April 15',
+    'Reduced scope: removed advanced analytics from MVP',
+  ],
+  todayPriorities: [
+    'Finish Stripe Checkout integration',
+    'Fix dashboard data fetching bug',
+    'Review and merge auth PR',
+  ],
+  newTaskAllocation: [
+    'Mon–Wed: Frontend completion (5 tasks/day)',
+    'Thu–Fri: Billing integration (4 tasks/day)',
+    'Weekend: QA + staging deploy',
+  ],
+  explanation:
+    'The recovery plan was generated because actual progress (52%) is 9 points below expected (61%) with 8 days of schedule variance. The plan reduces scope and increases daily throughput to recover the timeline without moving the fixed deadline.',
+  deadlineUnchanged: true,
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+
+export const mockDashboard: DashboardData = {
+  greeting: 'Good morning',
+  today: new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }),
+  nextCheckpoint: '14:00',
+  activeObjectivesCount: 4,
+  onTrackCount: 2,
+  atRiskCount: 1,
+  criticalCount: 1,
+  totalSpentThisWeek: 348,
+  coachMessage:
+    'One objective is critical. Stop planning. Start executing on the AWS cert today.',
+  todayPriorityTasks: mockTasks.filter((t) => t.status !== 'completed').slice(0, 3),
+}
+
+// ─── Integrations ─────────────────────────────────────────────────────────────
+
+export const mockIntegrations: IntegrationsStatus = {
+  googleTasksConnected: true,
+  googleTasksEmail: 'alex.morgan@gmail.com',
+  lastSyncTime: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
+  syncErrors: [],
+  emailNotificationsEnabled: true,
+  whatsappEnabled: false,
+}
+
+// ─── Settings ─────────────────────────────────────────────────────────────────
+
+export const mockSettings: UserSettings = {
+  timezone: 'America/New_York',
+  emailAddress: 'alex.morgan@example.com',
+  emailNotificationsEnabled: true,
+  checkpointHours: [10, 14, 18, 22],
+  googleTasksConnected: true,
+  displayName: 'Alex Morgan',
+}
