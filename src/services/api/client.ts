@@ -10,6 +10,7 @@ class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public details?: unknown,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -36,7 +37,18 @@ async function request<T>(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Request failed' }))
-    throw new ApiError(response.status, error.message ?? 'Request failed')
+
+    let message = error.message ?? 'Request failed'
+    if (Array.isArray(error.detail)) {
+      message = error.detail
+        .map((item: { loc?: Array<string | number>; msg?: string }) => {
+          const path = Array.isArray(item.loc) ? item.loc.slice(1).join('.') : 'field'
+          return `${path}: ${item.msg ?? 'invalid value'}`
+        })
+        .join(' | ')
+    }
+
+    throw new ApiError(response.status, message, error.detail)
   }
 
   return response.json() as Promise<T>
