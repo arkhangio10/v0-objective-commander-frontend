@@ -73,6 +73,7 @@ export default function ObjectiveDetailPage({
   const [dailyPlan, setDailyPlan] = useState<DailyPlan | null>(null)
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
+  const [generatingPlan, setGeneratingPlan] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -95,10 +96,42 @@ export default function ObjectiveDetailPage({
     load()
   }, [id])
 
+  async function reloadObjectiveData() {
+    const [obj, ms, ts, exps, an, plan] = await Promise.all([
+      objectivesService.getById(id),
+      milestonesService.listByObjective(id),
+      tasksService.listByObjective(id),
+      expensesService.listByObjective(id),
+      analyticsService.getSnapshot(id),
+      objectivesService.getDailyPlan(id).catch(() => null),
+    ])
+    setObjective(obj)
+    setMilestones(ms)
+    setTasks(ts)
+    setExpenses(exps)
+    setAnalytics(an)
+    setDailyPlan(plan)
+  }
+
+  async function handleGeneratePlan() {
+    setGeneratingPlan(true)
+    try {
+      await objectivesService.generatePlan(id)
+      await reloadObjectiveData()
+      setTab('tasks')
+    } finally {
+      setGeneratingPlan(false)
+    }
+  }
+
   async function handleResync() {
     setSyncing(true)
-    await objectivesService.resyncTasks(id)
-    setSyncing(false)
+    try {
+      await objectivesService.resyncTasks(id)
+      await reloadObjectiveData()
+    } finally {
+      setSyncing(false)
+    }
   }
 
   if (loading) {
@@ -216,6 +249,25 @@ export default function ObjectiveDetailPage({
               {t.label}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="px-4 pt-4 pb-0">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleGeneratePlan}
+            disabled={generatingPlan}
+            className="rounded-lg bg-primary px-4 py-2 text-xs font-mono uppercase tracking-wide text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+          >
+            {generatingPlan ? 'Generating Plan...' : 'Generate Plan'}
+          </button>
+          <button
+            onClick={handleResync}
+            disabled={syncing}
+            className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-xs font-mono uppercase tracking-wide text-primary transition-colors hover:bg-primary/15 disabled:opacity-60"
+          >
+            {syncing ? 'Syncing...' : 'Sync to Google Tasks'}
+          </button>
         </div>
       </div>
 
