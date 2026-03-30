@@ -18,7 +18,7 @@ import {
   expensesService,
   analyticsService,
 } from '@/src/services/api'
-import type { Objective, Milestone, Task, Expense, AnalyticsSnapshot } from '@/src/types'
+import type { Objective, Milestone, Task, Expense, AnalyticsSnapshot, DailyPlan } from '@/src/types'
 import { cn } from '@/lib/utils'
 import {
   Calendar,
@@ -70,23 +70,26 @@ export default function ObjectiveDetailPage({
   const [tasks, setTasks] = useState<Task[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [analytics, setAnalytics] = useState<AnalyticsSnapshot | null>(null)
+  const [dailyPlan, setDailyPlan] = useState<DailyPlan | null>(null)
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
 
   useEffect(() => {
     async function load() {
-      const [obj, ms, ts, exps, an] = await Promise.all([
+      const [obj, ms, ts, exps, an, plan] = await Promise.all([
         objectivesService.getById(id),
         milestonesService.listByObjective(id),
         tasksService.listByObjective(id),
         expensesService.listByObjective(id),
         analyticsService.getSnapshot(id),
+        objectivesService.getDailyPlan(id).catch(() => null),
       ])
       setObjective(obj)
       setMilestones(ms)
       setTasks(ts)
       setExpenses(exps)
       setAnalytics(an)
+      setDailyPlan(plan)
       setLoading(false)
     }
     load()
@@ -223,6 +226,43 @@ export default function ObjectiveDetailPage({
             {/* Coach */}
             <CoachMessageCard message={objective.coachMessage} />
 
+            {dailyPlan && (
+              <div className="rounded-lg border border-primary/20 bg-primary/8 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-mono uppercase tracking-widest text-primary/80">
+                      Today's Execution Plan
+                    </p>
+                    <p className="mt-1 text-sm text-foreground">{dailyPlan.focusSummary}</p>
+                  </div>
+                  <div className="rounded border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-mono text-primary">
+                    {dailyPlan.workloadLevel}
+                  </div>
+                </div>
+                {dailyPlan.recommendedTimeBlocks.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {dailyPlan.recommendedTimeBlocks.map((block) => (
+                      <span
+                        key={block}
+                        className="rounded border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-mono uppercase tracking-wide text-primary"
+                      >
+                        {block}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {dailyPlan.adaptationNotes.length > 0 && (
+                  <div className="mt-3 space-y-1 border-t border-primary/15 pt-3">
+                    {dailyPlan.adaptationNotes.map((note, index) => (
+                      <p key={index} className="text-xs text-muted-foreground">
+                        {note}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Description */}
             <div className="rounded-lg border border-border bg-card p-4">
               <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">
@@ -324,6 +364,72 @@ export default function ObjectiveDetailPage({
         {/* ── TASKS TAB ────────────────────────────────────────────── */}
         {tab === 'tasks' && (
           <div className="flex flex-col gap-4">
+            {dailyPlan && dailyPlan.recommendedTasks.length > 0 && (
+              <div>
+                <p className="mb-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                  Today&apos;s Planned Tasks
+                </p>
+                <div className="rounded-lg border border-primary/20 bg-primary/6 p-4">
+                  {dailyPlan.whyToday.length > 0 && (
+                    <div className="mb-3 rounded border border-border bg-card p-3">
+                      <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                        Why These Tasks
+                      </p>
+                      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                        {dailyPlan.whyToday.map((item, index) => (
+                          <li key={index}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="space-y-3">
+                    {dailyPlan.recommendedTasks.map((task) => (
+                      <div key={task.taskId} className="rounded border border-border bg-card px-3 py-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{task.title}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{task.reason}</p>
+                          </div>
+                          <span className="rounded border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-mono uppercase text-primary">
+                            {task.priority}
+                          </span>
+                        </div>
+                        <div className="mt-2 flex items-center gap-3 text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
+                          <span>{task.effortEstimate || 'Unspecified effort'}</span>
+                          <span>Due {task.dueDate}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {dailyPlan.patternInsights.length > 0 && (
+                    <div className="mt-3 border-t border-primary/15 pt-3">
+                      <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                        Pattern Insights
+                      </p>
+                      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                        {dailyPlan.patternInsights.map((item, index) => (
+                          <li key={index}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {dailyPlan.tomorrowPreview.length > 0 && (
+                    <div className="mt-3 border-t border-primary/15 pt-3">
+                      <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+                        Tomorrow Preview
+                      </p>
+                      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                        {dailyPlan.tomorrowPreview.map((item, index) => (
+                          <li key={index}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Google Tasks banner */}
             <div className="rounded-lg border border-blue-500/20 bg-blue-500/8 px-4 py-3 flex items-start gap-3">
               <div className="flex h-7 w-7 items-center justify-center rounded border border-blue-500/30 bg-blue-500/15 flex-shrink-0">

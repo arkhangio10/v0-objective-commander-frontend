@@ -8,8 +8,8 @@ import { CoachMessageCard } from '@/src/components/ui/coach-message-card'
 import { TaskRow } from '@/src/components/ui/task-row'
 import { RiskBadge } from '@/src/components/ui/risk-badge'
 import { DashboardSkeleton } from '@/src/components/ui/loading-skeleton'
-import { dashboardService, objectivesService } from '@/src/services/api'
-import type { DashboardData, Objective } from '@/src/types'
+import { authService, dashboardService, objectivesService } from '@/src/services/api'
+import type { DashboardData, Objective, User } from '@/src/types'
 import {
   Target,
   DollarSign,
@@ -19,29 +19,49 @@ import {
   ChevronRight,
   BarChart2,
   Bell,
+  CalendarClock,
 } from 'lucide-react'
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [objectives, setObjectives] = useState<Objective[]>([])
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     async function load() {
-      const [dash, objs] = await Promise.all([
-        dashboardService.getDashboard(),
-        objectivesService.list(),
-      ])
-      setData(dash)
-      setObjectives(objs.data)
-      setLoading(false)
+      try {
+        const [dash, objs, session] = await Promise.all([
+          dashboardService.getDashboard(),
+          objectivesService.list(),
+          authService.getSession(),
+        ])
+        setData(dash)
+        setObjectives(objs.data)
+        setUser(session)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard')
+      } finally {
+        setLoading(false)
+      }
     }
     load()
   }, [])
 
   if (loading) return <DashboardSkeleton />
 
-  if (!data) return null
+  if (!data) {
+    return (
+      <AppShell>
+        <div className="p-4">
+          <div className="rounded-lg border border-status-critical/30 bg-status-critical/10 p-4 text-sm text-status-critical">
+            {error || 'Dashboard data is unavailable.'}
+          </div>
+        </div>
+      </AppShell>
+    )
+  }
 
   const now = new Date()
   const hours = now.getHours()
@@ -58,7 +78,7 @@ export default function DashboardPage() {
               {greeting}
             </span>
             <h1 className="text-xl font-bold text-foreground tracking-tight">
-              Alex Morgan
+              {user?.displayName || user?.email || 'Objective Commander'}
             </h1>
             <span className="text-xs text-muted-foreground">{data.today}</span>
           </div>
@@ -82,6 +102,26 @@ export default function DashboardPage() {
         <div className="px-4 pt-2 pb-3">
           <CoachMessageCard message={data.coachMessage} />
         </div>
+
+        {data.todayPriorityTasks.length > 0 && (
+          <div className="px-4 pb-3">
+            <div className="rounded-lg border border-primary/20 bg-primary/8 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-mono uppercase tracking-widest text-primary/70">
+                    Today&apos;s Execution Window
+                  </p>
+                  <p className="mt-1 text-sm text-foreground">
+                    Focus on the recommended tasks first, then review tomorrow&apos;s carryover during your next checkpoint.
+                  </p>
+                </div>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/25 bg-primary/10">
+                  <CalendarClock className="h-4 w-4 text-primary" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stats grid */}
         <div className="grid grid-cols-2 gap-2.5 px-4 pb-3">

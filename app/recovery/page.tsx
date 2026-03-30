@@ -1,255 +1,141 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, AlertCircle, Target, TrendingDown, Clock } from 'lucide-react'
-import { AppShell } from '@/components/app-shell'
-import { ScreenHeader } from '@/components/screen-header'
-import { CoachMessageCard } from '@/components/ui/coach-message-card'
-import { api } from '@/services/api'
+import { AppShell } from '@/src/components/app-shell'
+import { ScreenHeader } from '@/src/components/screen-header'
+import { CoachMessageCard } from '@/src/components/ui/coach-message-card'
+import { objectivesService, recoveryService } from '@/src/services/api'
+import type { Objective, RecoveryPlan } from '@/src/types'
 
 export default function RecoveryPage() {
-  const [objectives] = useState(api.getObjectives())
-  const [selectedObjectiveId, setSelectedObjectiveId] = useState<string | null>(
-    objectives.find(o => o.status === 'at-risk' || o.status === 'critical')?.id || null
-  )
+  const [objectives, setObjectives] = useState<Objective[]>([])
+  const [selectedObjectiveId, setSelectedObjectiveId] = useState<string | null>(null)
+  const [recoveryPlan, setRecoveryPlan] = useState<RecoveryPlan | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const selectedObjective = selectedObjectiveId
-    ? objectives.find(o => o.id === selectedObjectiveId)
-    : null
-
-  const atRiskObjectives = objectives.filter(
-    o => o.status === 'at-risk' || o.status === 'critical'
-  )
-
-  const getRecoveryActions = (objective: typeof objectives[0]) => {
-    const actions = []
-
-    if (objective.status === 'critical') {
-      actions.push({
-        type: 'immediate' as const,
-        title: 'Critical Recovery Needed',
-        description: 'This objective requires immediate attention and action.',
-        actions: [
-          'Schedule focused work session within 24 hours',
-          'Review and realign milestones',
-          'Consider delegating non-critical tasks',
-          'Identify and remove blockers',
-        ],
-      })
+  useEffect(() => {
+    async function load() {
+      const response = await objectivesService.list()
+      const risky = response.data.filter((objective) => objective.riskStatus !== 'on_track')
+      setObjectives(risky)
+      setSelectedObjectiveId(risky[0]?.id ?? null)
+      setLoading(false)
     }
+    load()
+  }, [])
 
-    if (objective.status === 'at-risk') {
-      actions.push({
-        type: 'preventative' as const,
-        title: 'Preventative Action',
-        description: 'Take action now to avoid critical status.',
-        actions: [
-          'Increase weekly time allocation',
-          'Add accountability checkpoints',
-          'Break down next milestone into smaller tasks',
-          'Communicate status to stakeholders',
-        ],
-      })
+  useEffect(() => {
+    async function loadPlan() {
+      if (!selectedObjectiveId) {
+        setRecoveryPlan(null)
+        return
+      }
+      const plan = await recoveryService.getPlan(selectedObjectiveId)
+      setRecoveryPlan(plan)
     }
+    loadPlan()
+  }, [selectedObjectiveId])
 
-    actions.push({
-      type: 'strategic' as const,
-      title: 'Strategic Review',
-      description: 'Assess if this objective aligns with current priorities.',
-      actions: [
-        'Evaluate objective relevance',
-        'Consider timeline adjustments',
-        'Identify resource constraints',
-        'Plan contingencies',
-      ],
-    })
-
-    return actions
-  }
+  const selectedObjective = objectives.find((objective) => objective.id === selectedObjectiveId) ?? null
 
   return (
-    <AppShell currentScreen="recovery">
+    <AppShell>
       <div className="min-h-screen bg-background">
-        <ScreenHeader
-          title="Recovery Plans"
-          breadcrumbs={[
-            { label: 'Dashboard', href: '/dashboard' },
-            { label: 'Recovery Plans' },
-          ]}
-          description="Get back on track with targeted recovery actions"
-        />
+        <ScreenHeader title="Recovery Plans" subtitle="Live recovery guidance from the backend" />
 
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          {atRiskObjectives.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-lg bg-secondary mb-4">
-                <TrendingDown className="w-8 h-8 text-primary" />
+        <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 lg:grid-cols-3">
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h3 className="mb-3 text-sm font-semibold text-foreground">Objectives Needing Attention</h3>
+            {loading ? (
+              <div className="h-24 animate-pulse rounded-lg bg-secondary" />
+            ) : objectives.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No objective currently needs a recovery plan.</p>
+            ) : (
+              <div className="space-y-2">
+                {objectives.map((objective) => (
+                  <button
+                    key={objective.id}
+                    onClick={() => setSelectedObjectiveId(objective.id)}
+                    className={`w-full rounded-lg border p-3 text-left transition-colors ${
+                      objective.id === selectedObjectiveId
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:bg-secondary'
+                    }`}
+                  >
+                    <p className="text-sm font-medium text-foreground">{objective.title}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{objective.riskStatus.replace('_', ' ')}</p>
+                  </button>
+                ))}
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                All Clear
-              </h3>
-              <p className="text-muted-foreground">
-                No objectives need recovery plans. Keep up the momentum!
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Objectives List */}
-              <div className="lg:col-span-1">
-                <div className="bg-card rounded-lg border border-border p-4">
-                  <h3 className="font-semibold text-foreground mb-3 text-sm">
-                    At-Risk Objectives
-                  </h3>
-                  <div className="space-y-2">
-                    {atRiskObjectives.map(obj => (
-                      <button
-                        key={obj.id}
-                        onClick={() => setSelectedObjectiveId(obj.id)}
-                        className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                          selectedObjectiveId === obj.id
-                            ? 'bg-primary/10 border-primary'
-                            : 'border-border hover:bg-secondary'
-                        }`}
-                      >
-                        <div className="flex items-start gap-2">
-                          <AlertCircle
-                            className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                              obj.status === 'critical'
-                                ? 'text-red-500'
-                                : 'text-amber-500'
-                            }`}
-                          />
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-foreground truncate">
-                              {obj.name}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {obj.status === 'critical'
-                                ? 'Critical'
-                                : 'At Risk'}
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
+            )}
+          </div>
+
+          <div className="lg:col-span-2">
+            {!selectedObjective || !recoveryPlan ? (
+              <div className="rounded-lg border border-border bg-card p-6">
+                <p className="text-sm text-muted-foreground">Select an objective to inspect its recovery plan.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <h2 className="text-2xl font-bold text-foreground">{selectedObjective.title}</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">{selectedObjective.description}</p>
+                  <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-lg border border-border p-3">
+                      <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Progress</p>
+                      <p className="mt-1 text-lg font-semibold text-foreground">{selectedObjective.progressPercent}%</p>
+                    </div>
+                    <div className="rounded-lg border border-border p-3">
+                      <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Deadline</p>
+                      <p className="mt-1 text-lg font-semibold text-foreground">{selectedObjective.endDate}</p>
+                    </div>
+                    <div className="rounded-lg border border-border p-3">
+                      <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Feasibility</p>
+                      <p className="mt-1 text-lg font-semibold text-foreground">{selectedObjective.feasibilityScore}%</p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Recovery Plan */}
-              {selectedObjective && (
-                <div className="lg:col-span-2">
-                  <div className="space-y-4">
-                    {/* Header */}
-                    <div className="bg-card rounded-lg border border-border p-6">
-                      <h2 className="text-2xl font-bold text-foreground mb-2">
-                        {selectedObjective.name}
-                      </h2>
-                      <p className="text-muted-foreground mb-4">
-                        {selectedObjective.description}
-                      </p>
+                <CoachMessageCard message={selectedObjective.coachMessage || recoveryPlan.explanation} />
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">
-                            Current Progress
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-secondary rounded-full h-2">
-                              <div
-                                className="bg-primary h-2 rounded-full transition-all"
-                                style={{
-                                  width: `${selectedObjective.progress}%`,
-                                }}
-                              />
-                            </div>
-                            <span className="text-sm font-semibold text-foreground">
-                              {selectedObjective.progress}%
-                            </span>
-                          </div>
-                        </div>
-
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">
-                            Target Due
-                          </p>
-                          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                            <Clock className="w-4 h-4" />
-                            {new Date(
-                              selectedObjective.targetDate
-                            ).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Recovery Actions */}
-                    {getRecoveryActions(selectedObjective).map(
-                      (action, idx) => (
-                        <div
-                          key={idx}
-                          className="bg-card rounded-lg border border-border p-6"
-                        >
-                          <div className="flex items-start gap-3 mb-4">
-                            {action.type === 'immediate' && (
-                              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                            )}
-                            {action.type === 'preventative' && (
-                              <Clock className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                            )}
-                            {action.type === 'strategic' && (
-                              <Target className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                            )}
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-foreground">
-                                {action.title}
-                              </h3>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {action.description}
-                              </p>
-                            </div>
-                          </div>
-
-                          <ul className="space-y-2">
-                            {action.actions.map((item, i) => (
-                              <li
-                                key={i}
-                                className="flex items-start gap-3 text-sm text-foreground"
-                              >
-                                <input
-                                  type="checkbox"
-                                  className="w-4 h-4 rounded border-border bg-secondary mt-0.5 cursor-pointer"
-                                />
-                                <span>{item}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <h3 className="mb-3 text-sm font-semibold text-foreground">Top Priorities</h3>
+                  <ul className="space-y-2">
+                    {recoveryPlan.todayPriorities.length === 0 ? (
+                      <li className="text-sm text-muted-foreground">No priorities generated yet.</li>
+                    ) : (
+                      recoveryPlan.todayPriorities.map((priority) => (
+                        <li key={priority} className="text-sm text-foreground">{priority}</li>
+                      ))
                     )}
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-3">
-                      <Link
-                        href={`/objectives/${selectedObjective.id}`}
-                        className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 transition-opacity text-center"
-                      >
-                        View Objective
-                      </Link>
-                      <button className="flex-1 px-4 py-2 border border-border text-foreground rounded-lg font-medium hover:bg-secondary transition-colors">
-                        Generate Plan
-                      </button>
-                    </div>
-                  </div>
+                  </ul>
                 </div>
-              )}
-            </div>
-          )}
+
+                <div className="rounded-lg border border-border bg-card p-6">
+                  <h3 className="mb-3 text-sm font-semibold text-foreground">Rescheduled Work</h3>
+                  <ul className="space-y-2">
+                    {recoveryPlan.newTaskAllocation.length === 0 ? (
+                      <li className="text-sm text-muted-foreground">No task moves available.</li>
+                    ) : (
+                      recoveryPlan.newTaskAllocation.map((item) => (
+                        <li key={item} className="text-sm text-foreground">{item}</li>
+                      ))
+                    )}
+                  </ul>
+                </div>
+
+                <div className="flex gap-3">
+                  <Link
+                    href={`/objectives/${selectedObjective.id}`}
+                    className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+                  >
+                    View Objective
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </AppShell>

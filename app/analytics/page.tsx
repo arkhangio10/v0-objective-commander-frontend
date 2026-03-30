@@ -40,25 +40,42 @@ export default function AnalyticsPage() {
   const [objectives, setObjectives] = useState<Objective[]>([])
   const [analytics, setAnalytics] = useState<AnalyticsSnapshot | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState<string>('obj_001')
+  const [selected, setSelected] = useState<string>('')
+  const [error, setError] = useState('')
 
   useEffect(() => {
     async function load() {
-      const [objs, an] = await Promise.all([
-        objectivesService.list(),
-        analyticsService.getSnapshot('obj_001'),
-      ])
-      setObjectives(objs.data)
-      setAnalytics(an)
-      setLoading(false)
+      try {
+        const objs = await objectivesService.list()
+        setObjectives(objs.data)
+
+        if (objs.data.length === 0) {
+          setAnalytics(null)
+          return
+        }
+
+        const firstObjectiveId = objs.data[0].id
+        setSelected(firstObjectiveId)
+        const an = await analyticsService.getSnapshot(firstObjectiveId)
+        setAnalytics(an)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load analytics')
+      } finally {
+        setLoading(false)
+      }
     }
     load()
   }, [])
 
   async function handleSelect(id: string) {
-    setSelected(id)
-    const an = await analyticsService.getSnapshot(id)
-    setAnalytics(an)
+    try {
+      setSelected(id)
+      const an = await analyticsService.getSnapshot(id)
+      setAnalytics(an)
+      setError('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load analytics')
+    }
   }
 
   const selectedObj = objectives.find((o) => o.id === selected)
@@ -87,9 +104,17 @@ export default function AnalyticsPage() {
               ))}
         </div>
 
-        {loading || !analytics || !selectedObj ? (
+        {loading ? (
           <div className="flex flex-col gap-3">
             {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
+          </div>
+        ) : objectives.length === 0 ? (
+          <div className="rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+            Create an objective first to see analytics.
+          </div>
+        ) : error || !analytics || !selectedObj ? (
+          <div className="rounded-lg border border-status-critical/30 bg-status-critical/10 p-4 text-sm text-status-critical">
+            {error || 'Analytics are unavailable for the selected objective.'}
           </div>
         ) : (
           <>

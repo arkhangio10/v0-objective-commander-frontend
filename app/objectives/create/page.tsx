@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ScreenHeader } from '@/src/components/screen-header'
 import { objectivesService } from '@/src/services/api'
-import type { ObjectiveCategory } from '@/src/types'
-import { Loader2, Info } from 'lucide-react'
+import type { FixedCommitment, ObjectiveCategory } from '@/src/types'
+import { Loader2, Info, Plus, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const categories: { value: ObjectiveCategory; label: string }[] = [
@@ -20,6 +20,20 @@ const categories: { value: ObjectiveCategory; label: string }[] = [
 ]
 
 const CHECKPOINT_HOURS = [6, 8, 10, 12, 14, 16, 18, 20, 22]
+
+const EMPTY_COMMITMENT: FixedCommitment = {
+  label: '',
+  schedule: '',
+  dateRange: '',
+  notes: '',
+}
+
+function splitLines(value: string) {
+  return value
+    .split('\n')
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
 
 export default function CreateObjectivePage() {
   const router = useRouter()
@@ -36,6 +50,14 @@ export default function CreateObjectivePage() {
     budgetLimit: '',
     checkpointHours: [10, 14, 18, 22] as number[],
     emailReminders: true,
+    currentBaseline: '',
+    strategyNotes: '',
+    prePlan: '',
+    constraintsText: '',
+    dailyNonNegotiablesText: '',
+    executionPreferencesText: '',
+    reminderStrategy: '',
+    fixedCommitments: [{ ...EMPTY_COMMITMENT }] as FixedCommitment[],
   })
 
   function update<K extends keyof typeof form>(key: K) {
@@ -50,6 +72,32 @@ export default function CreateObjectivePage() {
       checkpointHours: f.checkpointHours.includes(hour)
         ? f.checkpointHours.filter((h) => h !== hour)
         : [...f.checkpointHours, hour].sort((a, b) => a - b),
+    }))
+  }
+
+  function updateCommitment(index: number, key: keyof FixedCommitment, value: string) {
+    setForm((f) => ({
+      ...f,
+      fixedCommitments: f.fixedCommitments.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [key]: value } : item,
+      ),
+    }))
+  }
+
+  function addCommitment() {
+    setForm((f) => ({
+      ...f,
+      fixedCommitments: [...f.fixedCommitments, { ...EMPTY_COMMITMENT }],
+    }))
+  }
+
+  function removeCommitment(index: number) {
+    setForm((f) => ({
+      ...f,
+      fixedCommitments:
+        f.fixedCommitments.length === 1
+          ? [{ ...EMPTY_COMMITMENT }]
+          : f.fixedCommitments.filter((_, itemIndex) => itemIndex !== index),
     }))
   }
 
@@ -83,18 +131,32 @@ export default function CreateObjectivePage() {
         budgetLimit: Number(form.budgetLimit) || 0,
         checkpointHours: form.checkpointHours,
         emailReminders: form.emailReminders,
+        currentBaseline: form.currentBaseline,
+        strategyNotes: form.strategyNotes,
+        prePlan: form.prePlan,
+        constraints: splitLines(form.constraintsText),
+        fixedCommitments: form.fixedCommitments
+          .map((item) => ({
+            label: item.label.trim(),
+            schedule: item.schedule.trim(),
+            dateRange: item.dateRange?.trim() || undefined,
+            notes: item.notes?.trim() || undefined,
+          }))
+          .filter((item) => item.label && item.schedule),
+        dailyNonNegotiables: splitLines(form.dailyNonNegotiablesText),
+        executionPreferences: splitLines(form.executionPreferencesText),
+        reminderStrategy: form.reminderStrategy,
       })
       router.push(`/objectives/${obj.id}`)
-    } catch {
-      setError('Failed to create objective. Try again.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create objective. Try again.')
       setLoading(false)
     }
   }
 
   const inputClass =
     'w-full rounded-lg border border-input bg-secondary px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all'
-  const labelClass =
-    'text-[10px] font-mono uppercase tracking-widest text-muted-foreground'
+  const labelClass = 'text-[10px] font-mono uppercase tracking-widest text-muted-foreground'
   const fieldClass = 'flex flex-col gap-1.5'
 
   return (
@@ -102,7 +164,6 @@ export default function CreateObjectivePage() {
       <ScreenHeader title="New Objective" backHref="/objectives" />
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-4 pt-5">
-        {/* Title */}
         <div className={fieldClass}>
           <label htmlFor="title" className={labelClass}>
             Title <span className="text-status-critical">*</span>
@@ -112,25 +173,59 @@ export default function CreateObjectivePage() {
             type="text"
             value={form.title}
             onChange={update('title')}
-            placeholder="e.g. Launch SaaS MVP"
+            placeholder="e.g. Reach IELTS 6.5 by May 23"
             className={inputClass}
           />
         </div>
 
-        {/* Description */}
         <div className={fieldClass}>
-          <label htmlFor="desc" className={labelClass}>Description</label>
+          <label htmlFor="desc" className={labelClass}>Objective Summary</label>
           <textarea
             id="desc"
             rows={3}
             value={form.description}
             onChange={update('description')}
-            placeholder="What is this objective about?"
+            placeholder="What is this objective about, and what should the system optimize for?"
             className={cn(inputClass, 'resize-none')}
           />
         </div>
 
-        {/* Category */}
+        <div className={fieldClass}>
+          <label htmlFor="baseline" className={labelClass}>Current Baseline</label>
+          <textarea
+            id="baseline"
+            rows={4}
+            value={form.currentBaseline}
+            onChange={update('currentBaseline')}
+            placeholder="Current level, recent results, weakest areas, diagnostic notes, or any starting context."
+            className={cn(inputClass, 'resize-none')}
+          />
+        </div>
+
+        <div className={fieldClass}>
+          <label htmlFor="strategy" className={labelClass}>Strategy Notes</label>
+          <textarea
+            id="strategy"
+            rows={3}
+            value={form.strategyNotes}
+            onChange={update('strategyNotes')}
+            placeholder="Tell the AI what matters most: prioritize writing first, protect sleep, keep weekends lighter, etc."
+            className={cn(inputClass, 'resize-none')}
+          />
+        </div>
+
+        <div className={fieldClass}>
+          <label htmlFor="prePlan" className={labelClass}>Pre-Plan / Existing Plan</label>
+          <textarea
+            id="prePlan"
+            rows={7}
+            value={form.prePlan}
+            onChange={update('prePlan')}
+            placeholder="Paste the plan you already have. The AI will review it, improve it, and turn it into daily execution tasks."
+            className={cn(inputClass, 'resize-none')}
+          />
+        </div>
+
         <div className={fieldClass}>
           <label className={labelClass}>
             Category <span className="text-status-critical">*</span>
@@ -154,7 +249,6 @@ export default function CreateObjectivePage() {
           </div>
         </div>
 
-        {/* Dates */}
         <div className="grid grid-cols-2 gap-3">
           <div className={fieldClass}>
             <label htmlFor="startDate" className={labelClass}>
@@ -182,15 +276,13 @@ export default function CreateObjectivePage() {
           </div>
         </div>
 
-        {/* Deadline notice */}
         <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/8 px-3 py-2.5">
-          <Info className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
+          <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-primary" />
           <p className="text-xs text-muted-foreground">
-            The end date is fixed. If you fall behind, the schedule adapts — not the deadline.
+            The deadline stays fixed. The plan, daily task mix, and reminders should adapt around your real life.
           </p>
         </div>
 
-        {/* Target outcome */}
         <div className={fieldClass}>
           <label htmlFor="target" className={labelClass}>
             Target Outcome <span className="text-status-critical">*</span>
@@ -200,12 +292,11 @@ export default function CreateObjectivePage() {
             type="text"
             value={form.targetOutcome}
             onChange={update('targetOutcome')}
-            placeholder="e.g. 10 paying customers live"
+            placeholder="e.g. Achieve IELTS overall 6.5 with Writing at 6.0 or above"
             className={inputClass}
           />
         </div>
 
-        {/* Effort & Budget */}
         <div className="grid grid-cols-2 gap-3">
           <div className={fieldClass}>
             <label htmlFor="effort" className={labelClass}>Estimated Hours</label>
@@ -215,7 +306,7 @@ export default function CreateObjectivePage() {
               min="0"
               value={form.estimatedEffort}
               onChange={update('estimatedEffort')}
-              placeholder="e.g. 200"
+              placeholder="e.g. 65"
               className={inputClass}
             />
           </div>
@@ -227,21 +318,116 @@ export default function CreateObjectivePage() {
               min="0"
               value={form.budgetLimit}
               onChange={update('budgetLimit')}
-              placeholder="e.g. 2000"
+              placeholder="e.g. 50"
               className={inputClass}
             />
           </div>
         </div>
 
-        {/* Checkpoint hours */}
+        <div className={fieldClass}>
+          <label htmlFor="constraints" className={labelClass}>Constraints</label>
+          <textarea
+            id="constraints"
+            rows={4}
+            value={form.constraintsText}
+            onChange={update('constraintsText')}
+            placeholder={'One rule per line.\nWork 8:00 AM to 6:00 PM\nClass Apr 30 to May 16 from 9:00 PM to 11:00 PM\nGym 6 days per week'}
+            className={cn(inputClass, 'resize-none')}
+          />
+        </div>
+
+        <div className={fieldClass}>
+          <div className="flex items-center justify-between">
+            <label className={labelClass}>Fixed Commitments</label>
+            <button
+              type="button"
+              onClick={addCommitment}
+              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[11px] font-mono text-muted-foreground hover:bg-muted"
+            >
+              <Plus className="h-3 w-3" />
+              Add
+            </button>
+          </div>
+          <div className="flex flex-col gap-3">
+            {form.fixedCommitments.map((commitment, index) => (
+              <div key={index} className="rounded-lg border border-border bg-card p-3">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <input
+                    type="text"
+                    value={commitment.label}
+                    onChange={(e) => updateCommitment(index, 'label', e.target.value)}
+                    placeholder="Commitment name"
+                    className={inputClass}
+                  />
+                  <input
+                    type="text"
+                    value={commitment.schedule}
+                    onChange={(e) => updateCommitment(index, 'schedule', e.target.value)}
+                    placeholder="Schedule, e.g. Mon-Fri 8:00 AM-6:00 PM"
+                    className={inputClass}
+                  />
+                  <input
+                    type="text"
+                    value={commitment.dateRange || ''}
+                    onChange={(e) => updateCommitment(index, 'dateRange', e.target.value)}
+                    placeholder="Date range, optional"
+                    className={inputClass}
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={commitment.notes || ''}
+                      onChange={(e) => updateCommitment(index, 'notes', e.target.value)}
+                      placeholder="Notes, optional"
+                      className={cn(inputClass, 'flex-1')}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeCommitment(index)}
+                      className="rounded-lg border border-border px-3 text-muted-foreground hover:bg-muted"
+                      aria-label="Remove commitment"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className={fieldClass}>
+          <label htmlFor="nonNegotiables" className={labelClass}>Daily Non-Negotiables</label>
+          <textarea
+            id="nonNegotiables"
+            rows={4}
+            value={form.dailyNonNegotiablesText}
+            onChange={update('dailyNonNegotiablesText')}
+            placeholder={'One per line.\nWrite every day\nRead 30 minutes daily'}
+            className={cn(inputClass, 'resize-none')}
+          />
+        </div>
+
+        <div className={fieldClass}>
+          <label htmlFor="preferences" className={labelClass}>Execution Preferences</label>
+          <textarea
+            id="preferences"
+            rows={4}
+            value={form.executionPreferencesText}
+            onChange={update('executionPreferencesText')}
+            placeholder={'One preference per line.\nAlternate speaking and listening every day\nKeep class nights lighter'}
+            className={cn(inputClass, 'resize-none')}
+          />
+        </div>
+
         <div className={fieldClass}>
           <label className={labelClass}>
             Checkpoint Hours <span className="text-status-critical">*</span>
           </label>
           <p className="text-xs text-muted-foreground -mt-0.5">
-            Analysis runs automatically at selected hours
+            These are the times when the system checks progress, replans, and sends reminders.
           </p>
-          <div className="flex flex-wrap gap-2 mt-1">
+          <div className="mt-1 flex flex-wrap gap-2">
             {CHECKPOINT_HOURS.map((h) => (
               <button
                 key={h}
@@ -260,11 +446,22 @@ export default function CreateObjectivePage() {
           </div>
         </div>
 
-        {/* Email reminders */}
+        <div className={fieldClass}>
+          <label htmlFor="reminders" className={labelClass}>Reminder Strategy</label>
+          <textarea
+            id="reminders"
+            rows={3}
+            value={form.reminderStrategy}
+            onChange={update('reminderStrategy')}
+            placeholder="Tell the system when reminders should be sent and when they should be avoided."
+            className={cn(inputClass, 'resize-none')}
+          />
+        </div>
+
         <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3">
           <div>
             <p className="text-sm font-medium text-foreground">Email Reminders</p>
-            <p className="text-xs text-muted-foreground">Receive checkpoint summaries by email</p>
+            <p className="text-xs text-muted-foreground">Receive checkpoint summaries and execution nudges by email</p>
           </div>
           <button
             type="button"
@@ -286,16 +483,15 @@ export default function CreateObjectivePage() {
         </div>
 
         {error && (
-          <p className="text-xs text-status-critical bg-status-critical/10 border border-status-critical/30 rounded px-3 py-2">
+          <p className="rounded border border-status-critical/30 bg-status-critical/10 px-3 py-2 text-xs text-status-critical">
             {error}
           </p>
         )}
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
         >
           {loading && <Loader2 className="h-4 w-4 animate-spin" />}
           {loading ? 'Creating Objective...' : 'Create Objective'}

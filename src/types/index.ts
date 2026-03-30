@@ -24,6 +24,7 @@ export type ObjectiveCategory =
   | 'finance'
   | 'education'
   | 'personal'
+  | 'project'
   | 'business'
   | 'fitness'
   | 'other'
@@ -40,6 +41,13 @@ export type ExpenseCategory =
   | 'study'
   | 'health'
   | 'misc'
+
+export interface FixedCommitment {
+  label: string
+  schedule: string
+  dateRange?: string
+  notes?: string
+}
 
 // ─── Objective ────────────────────────────────────────────────────────────────
 
@@ -61,6 +69,14 @@ export interface Objective {
   scheduleVariance: number // days (negative = behind)
   checkpointHours: number[]
   emailReminders: boolean
+  currentBaseline: string
+  strategyNotes: string
+  prePlan: string
+  constraints: string[]
+  fixedCommitments: FixedCommitment[]
+  dailyNonNegotiables: string[]
+  executionPreferences: string[]
+  reminderStrategy: string
   isActive: boolean
   coachMessage: string
   createdAt: string
@@ -78,6 +94,14 @@ export interface CreateObjectiveDTO {
   budgetLimit: number
   checkpointHours: number[]
   emailReminders: boolean
+  currentBaseline: string
+  strategyNotes: string
+  prePlan: string
+  constraints: string[]
+  fixedCommitments: FixedCommitment[]
+  dailyNonNegotiables: string[]
+  executionPreferences: string[]
+  reminderStrategy: string
 }
 
 // ─── Milestone ────────────────────────────────────────────────────────────────
@@ -106,6 +130,34 @@ export interface Task {
   isOverdue: boolean
   googleTaskId?: string
   notes?: string
+}
+
+export interface DailyPlanTask {
+  objectiveId: string
+  objectiveTitle: string
+  taskId: string
+  title: string
+  dueDate: string
+  priority: 'low' | 'medium' | 'high' | 'critical'
+  effortEstimate: string
+  reason: string
+  source: string
+  isOverdue: boolean
+}
+
+export interface DailyPlan {
+  date: string
+  focusSummary: string
+  todayPriorities: string[]
+  recommendedTasks: DailyPlanTask[]
+  carryoverCount: number
+  tomorrowPreview: string[]
+  recommendedReminderHours: number[]
+  adaptationNotes: string[]
+  patternInsights: string[]
+  whyToday: string[]
+  recommendedTimeBlocks: string[]
+  workloadLevel: 'light' | 'moderate' | 'focused'
 }
 
 // ─── Expense ──────────────────────────────────────────────────────────────────
@@ -181,6 +233,8 @@ export interface IntegrationsStatus {
   syncErrors: string[]
   emailNotificationsEnabled: boolean
   whatsappEnabled: boolean // future-ready
+  googleTasksDetails?: Record<string, unknown>
+  emailDetails?: Record<string, unknown>
 }
 
 // ─── Settings ─────────────────────────────────────────────────────────────────

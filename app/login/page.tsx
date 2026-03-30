@@ -32,6 +32,19 @@ export default function LoginPage() {
     }
   }
 
+  async function handleGoogleLogin() {
+    setError('')
+    setLoading(true)
+    try {
+      await authService.loginWithGoogle()
+      router.push('/dashboard')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google sign-in failed.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-12">
       {/* Logo */}
@@ -131,7 +144,7 @@ export default function LoginPage() {
           </div>
 
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={handleGoogleLogin}
             className="w-full rounded-lg border border-border bg-secondary px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors flex items-center justify-center gap-2"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
