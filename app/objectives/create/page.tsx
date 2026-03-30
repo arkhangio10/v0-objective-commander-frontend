@@ -20,6 +20,19 @@ const categories: { value: ObjectiveCategory; label: string }[] = [
 ]
 
 const CHECKPOINT_HOURS = [6, 8, 10, 12, 14, 16, 18, 20, 22]
+const FIELD_LIMITS = {
+  title: 200,
+  description: 2000,
+  targetOutcome: 1000,
+  currentBaseline: 2500,
+  strategyNotes: 2500,
+  prePlan: 4000,
+  reminderStrategy: 1000,
+  commitmentLabel: 120,
+  commitmentSchedule: 200,
+  commitmentDateRange: 120,
+  commitmentNotes: 250,
+} as const
 
 const EMPTY_COMMITMENT: FixedCommitment = {
   label: '',
@@ -118,6 +131,42 @@ export default function CreateObjectivePage() {
       return
     }
 
+    const textChecks: Array<[string, string, number]> = [
+      ['Title', form.title, FIELD_LIMITS.title],
+      ['Objective summary', form.description, FIELD_LIMITS.description],
+      ['Target outcome', form.targetOutcome, FIELD_LIMITS.targetOutcome],
+      ['Current baseline', form.currentBaseline, FIELD_LIMITS.currentBaseline],
+      ['Strategy notes', form.strategyNotes, FIELD_LIMITS.strategyNotes],
+      ['Pre-plan / existing plan', form.prePlan, FIELD_LIMITS.prePlan],
+      ['Reminder strategy', form.reminderStrategy, FIELD_LIMITS.reminderStrategy],
+    ]
+
+    for (const [label, value, limit] of textChecks) {
+      if (value.length > limit) {
+        setError(`${label} is too long. Maximum ${limit} characters.`)
+        return
+      }
+    }
+
+    for (const commitment of form.fixedCommitments) {
+      if (commitment.label.length > FIELD_LIMITS.commitmentLabel) {
+        setError(`Commitment name is too long. Maximum ${FIELD_LIMITS.commitmentLabel} characters.`)
+        return
+      }
+      if (commitment.schedule.length > FIELD_LIMITS.commitmentSchedule) {
+        setError(`Commitment schedule is too long. Maximum ${FIELD_LIMITS.commitmentSchedule} characters.`)
+        return
+      }
+      if ((commitment.dateRange || '').length > FIELD_LIMITS.commitmentDateRange) {
+        setError(`Commitment date range is too long. Maximum ${FIELD_LIMITS.commitmentDateRange} characters.`)
+        return
+      }
+      if ((commitment.notes || '').length > FIELD_LIMITS.commitmentNotes) {
+        setError(`Commitment notes are too long. Maximum ${FIELD_LIMITS.commitmentNotes} characters.`)
+        return
+      }
+    }
+
     setLoading(true)
     try {
       const obj = await objectivesService.create({
@@ -174,6 +223,7 @@ export default function CreateObjectivePage() {
             value={form.title}
             onChange={update('title')}
             placeholder="e.g. Reach IELTS 6.5 by May 23"
+            maxLength={FIELD_LIMITS.title}
             className={inputClass}
           />
         </div>
@@ -186,6 +236,7 @@ export default function CreateObjectivePage() {
             value={form.description}
             onChange={update('description')}
             placeholder="What is this objective about, and what should the system optimize for?"
+            maxLength={FIELD_LIMITS.description}
             className={cn(inputClass, 'resize-none')}
           />
         </div>
@@ -198,6 +249,7 @@ export default function CreateObjectivePage() {
             value={form.currentBaseline}
             onChange={update('currentBaseline')}
             placeholder="Current level, recent results, weakest areas, diagnostic notes, or any starting context."
+            maxLength={FIELD_LIMITS.currentBaseline}
             className={cn(inputClass, 'resize-none')}
           />
         </div>
@@ -210,6 +262,7 @@ export default function CreateObjectivePage() {
             value={form.strategyNotes}
             onChange={update('strategyNotes')}
             placeholder="Tell the AI what matters most: prioritize writing first, protect sleep, keep weekends lighter, etc."
+            maxLength={FIELD_LIMITS.strategyNotes}
             className={cn(inputClass, 'resize-none')}
           />
         </div>
@@ -222,6 +275,7 @@ export default function CreateObjectivePage() {
             value={form.prePlan}
             onChange={update('prePlan')}
             placeholder="Paste the plan you already have. The AI will review it, improve it, and turn it into daily execution tasks."
+            maxLength={FIELD_LIMITS.prePlan}
             className={cn(inputClass, 'resize-none')}
           />
         </div>
@@ -293,6 +347,7 @@ export default function CreateObjectivePage() {
             value={form.targetOutcome}
             onChange={update('targetOutcome')}
             placeholder="e.g. Achieve IELTS overall 6.5 with Writing at 6.0 or above"
+            maxLength={FIELD_LIMITS.targetOutcome}
             className={inputClass}
           />
         </div>
@@ -357,6 +412,7 @@ export default function CreateObjectivePage() {
                     value={commitment.label}
                     onChange={(e) => updateCommitment(index, 'label', e.target.value)}
                     placeholder="Commitment name"
+                    maxLength={FIELD_LIMITS.commitmentLabel}
                     className={inputClass}
                   />
                   <input
@@ -364,6 +420,7 @@ export default function CreateObjectivePage() {
                     value={commitment.schedule}
                     onChange={(e) => updateCommitment(index, 'schedule', e.target.value)}
                     placeholder="Schedule, e.g. Mon-Fri 8:00 AM-6:00 PM"
+                    maxLength={FIELD_LIMITS.commitmentSchedule}
                     className={inputClass}
                   />
                   <input
@@ -371,6 +428,7 @@ export default function CreateObjectivePage() {
                     value={commitment.dateRange || ''}
                     onChange={(e) => updateCommitment(index, 'dateRange', e.target.value)}
                     placeholder="Date range, optional"
+                    maxLength={FIELD_LIMITS.commitmentDateRange}
                     className={inputClass}
                   />
                   <div className="flex gap-2">
@@ -379,6 +437,7 @@ export default function CreateObjectivePage() {
                       value={commitment.notes || ''}
                       onChange={(e) => updateCommitment(index, 'notes', e.target.value)}
                       placeholder="Notes, optional"
+                      maxLength={FIELD_LIMITS.commitmentNotes}
                       className={cn(inputClass, 'flex-1')}
                     />
                     <button
@@ -454,6 +513,7 @@ export default function CreateObjectivePage() {
             value={form.reminderStrategy}
             onChange={update('reminderStrategy')}
             placeholder="Tell the system when reminders should be sent and when they should be avoided."
+            maxLength={FIELD_LIMITS.reminderStrategy}
             className={cn(inputClass, 'resize-none')}
           />
         </div>

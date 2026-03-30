@@ -37,10 +37,11 @@ async function request<T>(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Request failed' }))
+    const validationDetails = error.detail ?? error.details
 
     let message = error.message ?? 'Request failed'
-    if (Array.isArray(error.detail)) {
-      message = error.detail
+    if (Array.isArray(validationDetails)) {
+      message = validationDetails
         .map((item: { loc?: Array<string | number>; msg?: string }) => {
           const path = Array.isArray(item.loc) ? item.loc.slice(1).join('.') : 'field'
           return `${path}: ${item.msg ?? 'invalid value'}`
@@ -48,7 +49,7 @@ async function request<T>(
         .join(' | ')
     }
 
-    throw new ApiError(response.status, message, error.detail)
+    throw new ApiError(response.status, message, validationDetails)
   }
 
   return response.json() as Promise<T>

@@ -554,8 +554,8 @@ export const objectivesService = {
       fixed_commitments: dto.fixedCommitments.map((item) => ({
         label: item.label,
         schedule: item.schedule,
-        date_range: item.dateRange,
-        notes: item.notes,
+        ...(item.dateRange ? { date_range: item.dateRange } : {}),
+        ...(item.notes ? { notes: item.notes } : {}),
       })),
       daily_non_negotiables: dto.dailyNonNegotiables,
       execution_preferences: dto.executionPreferences,
@@ -584,8 +584,8 @@ export const objectivesService = {
             fixed_commitments: dto.fixedCommitments.map((item) => ({
               label: item.label,
               schedule: item.schedule,
-              date_range: item.dateRange,
-              notes: item.notes,
+              ...(item.dateRange ? { date_range: item.dateRange } : {}),
+              ...(item.notes ? { notes: item.notes } : {}),
             })),
           }
         : {}),
