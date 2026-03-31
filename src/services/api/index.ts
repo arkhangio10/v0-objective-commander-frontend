@@ -4,6 +4,7 @@ import { getFirebaseAuth, isFirebaseConfigured } from '@/src/lib/firebase'
 import type {
   AnalyticsSnapshot,
   ApiResponse,
+  CreateProgressNoteDTO,
   CreateExpenseDTO,
   CreateObjectiveDTO,
   DailyPlan,
@@ -13,6 +14,7 @@ import type {
   IntegrationsStatus,
   Objective,
   PaginatedResponse,
+  ProgressNote,
   RecoveryPlan,
   Task,
   User,
@@ -207,6 +209,23 @@ type BackendDailyPlan = {
   workload_level: 'light' | 'moderate' | 'focused'
 }
 
+type BackendProgressNote = {
+  id: string
+  objective_id: string
+  note_date: string
+  note: string
+  metric_label?: string | null
+  metric_value?: number | null
+  marks_objective_complete: boolean
+  source: string
+  created_at: string
+}
+
+type BackendProgressNoteListResponse = {
+  notes: BackendProgressNote[]
+  total: number
+}
+
 const DEV_TOKEN = 'dev-testuser'
 
 function ensureDevToken(): string {
@@ -342,6 +361,20 @@ function mapDailyPlan(plan: BackendDailyPlan): DailyPlan {
     whyToday: plan.why_today,
     recommendedTimeBlocks: plan.recommended_time_blocks,
     workloadLevel: plan.workload_level,
+  }
+}
+
+function mapProgressNote(note: BackendProgressNote): ProgressNote {
+  return {
+    id: note.id,
+    objectiveId: note.objective_id,
+    noteDate: note.note_date,
+    note: note.note,
+    metricLabel: note.metric_label ?? undefined,
+    metricValue: note.metric_value ?? undefined,
+    marksObjectiveComplete: note.marks_objective_complete,
+    source: note.source,
+    createdAt: note.created_at,
   }
 }
 
@@ -627,6 +660,26 @@ export const objectivesService = {
     await getAuthToken()
     const plan = await apiClient.get<BackendDailyPlan>(`/objectives/${id}/daily-plan`)
     return mapDailyPlan(plan)
+  },
+
+  listProgressNotes: async (id: string): Promise<ProgressNote[]> => {
+    await getAuthToken()
+    const response = await apiClient.get<BackendProgressNoteListResponse>(`/objectives/${id}/progress-notes`)
+    return response.notes.map(mapProgressNote)
+  },
+
+  createProgressNote: async (id: string, dto: CreateProgressNoteDTO): Promise<ProgressNote> => {
+    await getAuthToken()
+    const created = await apiClient.post<BackendProgressNote>(`/objectives/${id}/progress-notes`, {
+      note: dto.note,
+      ...(dto.noteDate ? { note_date: dto.noteDate } : {}),
+      ...(dto.metricLabel ? { metric_label: dto.metricLabel } : {}),
+      ...(dto.metricValue !== undefined ? { metric_value: dto.metricValue } : {}),
+      ...(dto.marksObjectiveComplete !== undefined
+        ? { marks_objective_complete: dto.marksObjectiveComplete }
+        : {}),
+    })
+    return mapProgressNote(created)
   },
 }
 

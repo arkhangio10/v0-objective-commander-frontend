@@ -104,6 +104,26 @@ export interface CreateObjectiveDTO {
   reminderStrategy: string
 }
 
+export interface ProgressNote {
+  id: string
+  objectiveId: string
+  noteDate: string
+  note: string
+  metricLabel?: string
+  metricValue?: number
+  marksObjectiveComplete: boolean
+  source: string
+  createdAt: string
+}
+
+export interface CreateProgressNoteDTO {
+  note: string
+  noteDate?: string
+  metricLabel?: string
+  metricValue?: number
+  marksObjectiveComplete?: boolean
+}
+
 // ─── Milestone ────────────────────────────────────────────────────────────────
 
 export interface Milestone {

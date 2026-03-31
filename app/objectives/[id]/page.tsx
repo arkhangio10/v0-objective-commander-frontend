@@ -6,6 +6,7 @@ import { ScreenHeader } from '@/src/components/screen-header'
 import { RiskBadge } from '@/src/components/ui/risk-badge'
 import { StatCard } from '@/src/components/ui/stat-card'
 import { CoachMessageCard } from '@/src/components/ui/coach-message-card'
+import { ProgressNotesPanel } from '@/src/components/ui/progress-notes-panel'
 import { MilestoneCard } from '@/src/components/ui/milestone-card'
 import { TaskRow } from '@/src/components/ui/task-row'
 import { ExpenseRow } from '@/src/components/ui/expense-row'
@@ -275,6 +276,12 @@ export default function ObjectiveDetailPage({
         {/* ── OVERVIEW TAB ─────────────────────────────────────────── */}
         {tab === 'overview' && (
           <div className="flex flex-col gap-4">
+            <ProgressNotesPanel
+              objectiveId={id}
+              targetOutcome={objective.targetOutcome}
+              onSaved={reloadObjectiveData}
+            />
+
             {/* Coach */}
             <CoachMessageCard message={objective.coachMessage} />
 
